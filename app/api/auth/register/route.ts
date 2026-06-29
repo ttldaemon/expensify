@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import z from "zod";
-import bcrypt from "bcryptjs";
+import { hash } from "bcryptjs";
 import { IUser, User } from "@/models/user";
 import { connectDB } from "@/lib/db";
 
-const loginSchema = z.object({
+const registerSchema = z.object({
   name: z.string(),
   email: z.email(),
   password: z
     .string()
     .min(6, { message: "Password must be of minimum 6 characters" }),
+  monthlyBudget: z.number(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const parsedBody = loginSchema.safeParse(body);
+    const parsedBody = registerSchema.safeParse(body);
 
     if (!parsedBody.success) {
       return NextResponse.json(
@@ -28,11 +29,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, password } = parsedBody.data;
+    const { name, email, password, monthlyBudget } = parsedBody.data;
 
     await connectDB();
-    
-    const userExist = await User.findOne({ email })
+
+    const userExist = await User.findOne({ email });
 
     if (userExist) {
       return NextResponse.json(
@@ -41,12 +42,17 @@ export async function POST(req: NextRequest) {
           msg: "User with this email already exists",
         },
         { status: 400 },
-      ); 
+      );
     }
 
-    const hashedPass = await bcrypt.hash(password, 12);
+    const hashedPass = await hash(password, 12);
 
-    const user: IUser = await User.create({ name, email, password: hashedPass });
+    const user: IUser = await User.create({
+      name,
+      email,
+      password: hashedPass,
+      monthlyBudget,
+    });
 
     if (!user) {
       return NextResponse.json(
