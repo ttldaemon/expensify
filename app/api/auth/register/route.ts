@@ -10,7 +10,7 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(6, { message: "Password must be of minimum 6 characters" }),
-  monthlyBudget: z.number(),
+  monthlyBudget: z.coerce.number(),
 });
 
 export async function POST(req: NextRequest) {
